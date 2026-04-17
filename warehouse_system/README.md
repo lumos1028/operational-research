@@ -1,506 +1,100 @@
-# 🤖 多机器人仓储系统 - 完整实现
+# Multi-Robot Warehouse System | 多机器人仓储系统
 
-**版本**: v2.1-stable | **状态**: ✅ 生产就绪 | **更新**: 2026-04-17
+A simulation platform for multi-robot warehouse management, featuring real-time 3D visualization, intelligent scheduling algorithms, and a complete REST API.
 
-一个企业级多机器人仓库管理系统，具有**实时3D可视化**、**高级调度算法**和**完整REST API**。
-
----
-
-## 📸 系统预览
-
-### 3D实时可视化仪表板
-- ✅ 60FPS流畅渲染
-- ✅ 实时机器人定位
-- ✅ 直观的自由相机控制
-- ✅ 无CDN库依赖隐患（使用自实现SimpleCamera）
-
-### 2D企业仪表板
-- ✅ 实时订单监控
-- ✅ 机器人状态追踪
-- ✅ 性能指标统计
-- ✅ 系统健康检查
+企业级多机器人仓库管理仿真平台，支持实时3D可视化、智能调度算法与完整REST API。
 
 ---
 
-## 🎯 核心功能
+## Features | 功能特性
 
-### 仓库模拟
-| 功能 | 规格 | 状态 |
-|------|------|------|
-| 虚拟仓库 | 50m × 50m | ✅ |
-| 货架系统 | 12个货架 | ✅ |
-| 充电站 | 3个位置 | ✅ |
-| 机器人 | 支持5个 (可扩展) | ✅ |
-| 订单处理 | 动态生成 | ✅ |
-
-### 调度算法
-| 算法 | 用途 | 性能 |
-|------|------|------|
-| A* | 路径规划 | O(n*m) |
-| Hungarian | 任务分配 | O(n³) |
-| 遗传算法 | 全局优化 | 可配 |
-
-### REST API
-| 端点 | 功能 | 延迟 |
-|------|------|------|
-| `/api/status` | 系统状态 | <50ms |
-| `/api/robots` | 机器人信息 | <50ms |
-| `/api/orders` | 订单数据 | <100ms |
-| `/api/metrics` | 性能指标 | <50ms |
+- **3D Visualization** — WebGL-based 60 FPS real-time rendering with free camera control
+- **2D Dashboard** — Order monitoring, robot status tracking, and performance metrics
+- **Scheduling Algorithms** — A\* path planning + multi-objective task assignment (distance, workload, queue time)
+- **REST API** — 10 endpoints for simulation control and data retrieval
+- **Dynamic Orders** — Priority-based order generation with urgency scoring
 
 ---
 
-## 🚀 快速开始 (只需2个命令)
+## Quick Start | 快速开始
+
+**Requirements:** Python 3.7+, pip
 
 ```bash
-# 终端1: 启动后端
-cd backend && python3 app.py
+# 1. Install dependencies
+cd backend && pip install -r requirements.txt
 
-# 终端2: 启动前端
-cd frontend && python3 -m http.server 8000
+# 2. Start backend (Terminal 1)
+cd backend && python app.py
 
-# 浏览器: http://localhost:8000
+# 3. Start frontend server (Terminal 2)
+cd frontend && python -m http.server 8000
 ```
 
-✅ **完成** - 仓库系统已启动、3D可视化就绪
-
-👉 [详细指南 → QUICKSTART.md](QUICKSTART.md)
+Open in browser: `http://localhost:8000`
 
 ---
 
-## 📚 完整文档
-
-| 文档 | 内容 | 阅读时间 |
-|------|------|--------|
-| [QUICKSTART.md](QUICKSTART.md) | 快速开始 + FAQ | 5分钟 ⭐ |
-| [PHASE2_FINAL.md](PHASE2_FINAL.md) | 技术深度文档 | 20分钟 |
-| [PHASE2_IMPLEMENTATION_REPORT.md](PHASE2_IMPLEMENTATION_REPORT.md) | 实现报告 | 15分钟 |
-
----
-
-## 🏗️ 技术架构
-
-### 前端 (3D可视化)
-```
-Three.js r128 (WebGL)
-    ↓
-SimpleCamera自实现相机
-    ↓
-ES6 JavaScript
-    ↓
-60 FPS输出
-```
-
-### 后端 (模拟引擎)
-```
-Flask 2.3.3
-    ├─ Simulator (仓库模拟)
-    ├─ Robot (机器人控制)
-    ├─ Order (订单管理)
-    └─ Scheduler (调度算法)
-```
-
-### 通信
-```
-500ms REST轮询
-JSON数据格式
-<100ms API响应
-```
-
----
-
-## 💡 创新特性
-
-### 1. 零依赖3D可视化
-**单文件HTML (530行) - 无构建工具**
-- 完全自包含
-- 直接运行
-- 快速迭代
-
-### 2. SimpleCamera (自实现相机)
-**解决CDN不可靠问题** 
-```javascript
-// 200行自实现的相机控制器
-class SimpleCamera {
-  - 球坐标系 (θ, φ, r)
-  - 鼠标控制
-  - 键盘快捷键
-  - 性能优化
-}
-```
-
-### 3. 多层调度算法
-```
-优先级评分 → Hungarian分配 → 遗传优化 → A*规划
-```
-
-### 4. 企业级数据模型
-- 订单优先级系统
-- 机器人效率指标
-- 实时库存管理
-
----
-
-## 📊 性能基准
-
-```
-指标              目标      实现     状态
-────────────────────────────────────────
-FPS稳定性        60 FPS    60 FPS   ✅
-API响应           <600ms   <100ms   ✅
-场景加载          <2s      0.8s     ✅
-内存占用          <150MB   80MB     ✅
-機器人更新        平滑     平滑     ✅
-```
-
-**扩展测试**: 5个机器人 → 60 FPS, 10个 → 55 FPS, 20个 → 45 FPS ✅
-
----
-
-## 📁 项目结构
+## Project Structure | 项目结构
 
 ```
 warehouse_system/
 ├── backend/
-│   ├── app.py           ← Flask REST服务器
-│   ├── simulator.py      ← 仓库模拟引擎
-│   ├── robot.py          ← 机器人模型
-│   ├── order.py          ← 订单模型
-│   ├── scheduler.py      ← 调度算法
+│   ├── app.py           # Flask REST API server
+│   ├── simulator.py     # Core simulation engine
+│   ├── scheduler.py     # A* path planning & task assignment
+│   ├── robot.py         # Robot fleet management
+│   ├── order.py         # Order generation & tracking
 │   └── requirements.txt
-├── frontend/
-│   ├── home.html         ← 首页导航
-│   ├── dashboard.html    ← 2D仪表板
-│   ├── 3d-dashboard.html ← 3D可视化 ⭐
-│   └── style.css
-└── docs/
-    ├── README.md         ← 本文件
-    ├── QUICKSTART.md
-    ├── PHASE2_FINAL.md
-    └── PHASE2_IMPLEMENTATION_REPORT.md
-```
-
----
-
-## 🔧 系统要求
-
-- Python: 3.7+
-- 内存: 最少4GB (推荐8GB)
-- 浏览器: Chrome 90+ / Safari 14+ / Firefox 88+
-- 网络: 网络连接 (CDN加载)
-
----
-
-## 🎮 使用场景
-
-### 实时监控
-管理员 → 打开3D仪表板 → 实时观看机器人运作
-
-### 性能分析
-运维人员 → 打开2D仪表板 → 获取系统性能指标
-
-### 算法验证
-研究人员 → 修改scheduler.py → 对比性能
-
----
-
-## 📈 发展路线图
-
-| Phase | 内容 | 状态 |
-|-------|------|------|
-| 1 | 系统基础 | ✅ 完成 |
-| 2 | 3D可视化 | ✅ 完成 |
-| 3 | 高级算法可视化 | 🔄 进行 |
-| 4 | WebSocket实时更新 | 📆 规划 |
-| 5 | VR/AR集成 | 🚀 远期 |
-
----
-
-## 🐛 已知限制
-
-| 限制 | 解决方案 | 优先级 |
-|------|--------|-------|
-| 无物理碰撞 | 调度系统保证 | 低 |
-| 无路径动画 | Phase 3添加 | 中 |
-| 单窗口显示 | 多窗口支持 | 低 |
-
----
-
-## ✅ 质量保证
-
-- ✅ 功能完整性测试
-- ✅ API端点验证
-- ✅ 性能基准测试
-- ✅ 跨浏览器兼容性
-- ✅ 错误处理完善
-
----
-
-## 📞 获取帮助
-
-**遇到问题?**
-
-1. 查看 [QUICKSTART.md - 常见问题解决](QUICKSTART.md#-常见问题解决)
-2. 检查浏览器控制台 (F12)
-3. 阅读 [技术文档](PHASE2_FINAL.md)
-
-**有建议?**
-
-提交Issue或Pull Request 📝
-
----
-
-## 📋 项目概述
-
-这是一个完整的多机器人仓储系统，实现了任务分配、路径规划、冲突避免等功能。系统包含以下四个核心模块：
-
-### 1. **模块1：环境建模** (`environment.py`)
-- 网格地图（50×50）
-- 障碍物（货架）
-- 通道
-- 充电区
-- 目标点（拣货区）
-
-### 2. **模块2：机器人系统** (`robot.py`)
-- 每个机器人有：位置 (x, y)、状态、任务队列、电量等
-- 支持4种状态：空闲(IDLE)、忙碌(BUSY)、充电(CHARGING)、移动(MOVING)
-- 机器人集群管理
-
-### 3. **模块3：订单系统** (`order.py`)
-- 动态订单生成
-- 优先级系统（LOW, MEDIUM, HIGH）
-- 订单状态跟踪（PENDING, ASSIGNED, IN_PROGRESS, COMPLETED）
-- 紧迫性评分（考虑优先级和等待时间）
-
-### 4. **模块4：调度系统** (`scheduler.py`)
-- **A*路径规划**：快速、可靠的路径查找
-- **任务分配算法**：多目标优化
-  - 最小化总完成时间（Makespan）
-  - 最小化总行驶距离
-  - 机器人负载均衡
-  - 避免拥堵/冲突
-- **冲突检测**：时间-空间碰撞检测
-
-## 优化目标
-
-1. **总完成时间最短（Makespan）**
-   - 综合考虑机器人当前队列长度
-   - 优先分配给空闲或负载低的机器人
-
-2. **总行驶距离最小**
-   - 使用启发式距离估计
-   - 择近的机器人优先分配
-
-3. **机器人负载均衡**
-   - 计算机器人工作量（任务数 + 负载百分比）
-   - 分配给负载最低的机器人
-
-4. **避免拥堵/冲突**
-   - 时间-空间碰撞检测
-   - A*路径规划避免障碍物
-
-## 系统架构
-
-```
-warehouse_system/
-├── backend/
-│   ├── environment.py       # 环境建模
-│   ├── robot.py            # 机器人系统
-│   ├── order.py            # 订单系统
-│   ├── scheduler.py        # 调度系统
-│   ├── simulator.py        # 模拟器
-│   ├── app.py              # Flask后端
-│   └── requirements.txt     # 依赖
 └── frontend/
-    └── index.html          # 前端可视化
+    ├── home.html        # Navigation hub
+    ├── 3d-dashboard.html  # 3D visualization
+    └── dashboard.html   # 2D data dashboard
 ```
 
-## 安装和运行
+---
 
-### 1. 安装依赖
+## API Reference | API 文档
 
-```bash
-cd backend
-pip install -r requirements.txt
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/status` | GET | Full system state |
+| `/api/robots` | GET | Robot fleet status |
+| `/api/orders` | GET | All orders |
+| `/api/metrics` | GET | Performance metrics |
+| `/api/grid` | GET | Map grid + robot positions |
+| `/api/simulation/start` | POST | Start simulation |
+| `/api/simulation/pause` | POST | Pause simulation |
+| `/api/simulation/step` | POST | Step simulation by 1s |
+| `/api/simulation/reset` | POST | Reset to initial state |
 
-### 2. 启动后端服务
+---
 
-```bash
-cd backend
-python app.py
-```
+## Algorithm Overview | 算法说明
 
-服务器将在 `http://localhost:5000` 启动
-
-### 3. 打开前端页面
-
-在浏览器中打开：
-```
-frontend/index.html
-```
-
-或直接访问：
-```
-file:///path/to/warehouse_system/frontend/index.html
-```
-
-## API 文档
-
-### 获取系统状态
-- **URL**: `/api/status`
-- **方法**: GET
-- **返回**: 当前系统的完整状态（机器人、订单、指标等）
-
-### 获取机器人信息
-- **URL**: `/api/robots`
-- **方法**: GET
-- **返回**: 所有机器人的详细信息
-
-### 获取订单列表
-- **URL**: `/api/orders`
-- **方法**: GET
-- **返回**: 所有订单及其状态
-
-### 获取性能指标
-- **URL**: `/api/metrics`
-- **方法**: GET
-- **返回**: 系统性能指标（总距离、完成任务数等）
-
-### 获取地图网格
-- **URL**: `/api/grid`
-- **方法**: GET
-- **返回**: 地图网格和机器人位置
-
-### 模拟控制
-
-- **启动模拟**: `POST /api/simulation/start`
-- **暂停模拟**: `POST /api/simulation/pause`
-- **单步模拟**: `POST /api/simulation/step`
-- **重置模拟**: `POST /api/simulation/reset`
-
-## 使用说明
-
-### 前端可视化功能
-
-1. **仓库地图**
-   - 黄色区域：通道
-   - 黑色区域：障碍物（货架）
-   - 绿色区域：充电区
-   - 粉色区域：目标点（拣货区）
-   - 蓝色圆形：机器人
-
-2. **机器人状态指示**
-   - 绿色光圈：空闲
-   - 黄色光圈：忙碌
-   - 蓝色光圈：移动
-   - 红色光圈：充电
-
-3. **控制按钮**
-   - **▶ 启动**: 开始模拟
-   - **⏸ 暂停**: 暂停模拟
-   - **⏭ 单步**: 执行一步模拟（1秒）
-   - **🔄 重置**: 重置系统到初始状态
-
-4. **系统指标**
-   - 总机器人数
-   - 空闲机器人数
-   - 待分配订单数
-   - 总行驶距离
-   - 已完成任务数
-   - 平均电量
-
-5. **机器人列表**
-   - 实时显示每个机器人的状态
-   - 位置、负载、任务队列、电量等信息
-   - 电量条直观显示
-
-## 算法详解
-
-### 任务分配算法
-
-当有新订单时，系统会：
-
-1. **收集候选机器人**
-   - 过滤掉电池不足的机器人（< 15%）
-
-2. **计算分配成本**
-   对每个候选机器人计算：
-   - `distance`: 到取货点 + 到送货点的距离
-   - `queue_time`: 当前任务队列时间（每个任务15秒）
-   - `battery_cost`: 预期电池消耗
-   - `workload_level`: 工作负载水平
-
-3. **综合评分**
-   ```
-   score = distance * 0.4 + queue_time * 0.35 + workload_level * 0.25
-   ```
-   选择评分最低的机器人
-
-4. **路径规划**
-   使用A*算法规划最优路径
-
-### 路径规划算法（A*）
+**Task Assignment** uses a weighted cost function:
 
 ```
-f(n) = g(n) + h(n)
-其中：
-- g(n): 从起点到当前节点的实际距离
-- h(n): 从当前节点到目标的启发式估计（曼哈顿距离）
+cost = distance × 0.40 + queue_time × 0.35 + workload × 0.25
 ```
 
-### 冲突避免
+**Path Planning** uses A\* with Manhattan distance heuristic and space-time collision avoidance.
 
-- 时间-空间映射：记录每个时间点每个位置是否有机器人
-- 规划路径时检查是否有碰撞
-- 清理过期的碰撞记录（超过100秒的历史）
+**Order Priority** scoring combines priority level, waiting time, and deadline proximity.
 
-## 配置参数
+---
 
-在 `simulator.py` 中可以配置：
+## Roadmap | 开发计划
 
-```python
-# 机器人数量
-num_robots = 5
+| Phase | Content | Status |
+|-------|---------|--------|
+| 1 | Core simulation & 2D visualization | Complete |
+| 2 | 3D visualization | Complete |
+| 3 | Algorithm visualization & WebSocket | In progress |
+| 4 | VR/AR integration | Planned |
 
-# 地图大小
-warehouse_width = 50
-warehouse_height = 50
+---
 
-# 订单生成间隔（秒）
-base_interval = 1.0
-```
+## License
 
-## 扩展建议
-
-1. **增加更复杂的路径规划算法**
-   - D* Lite（动态规划）
-   - 快速探索随机树（RRT）
-
-2. **优化调度算法**
-   - 遗传算法
-   - 模拟退火
-   - 蚁群优化
-
-3. **多阶段调度**
-   - 长期规划
-   - 中期协调
-   - 短期执行
-
-4. **增加实际约束**
-   - 机械臂操作时间
-   - 充电站容量限制
-   - 货架拥堵模型
-
-5. **数据分析**
-   - 系统性能报告
-   - 资源利用率分析
-   - 瓶颈识别
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题或建议，欢迎提出Issue或Pull Request。
+MIT
