@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多机器人仓储系统 - 3D可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .ui-panel {
+            position: fixed;
+            background: rgba(10, 14, 39, 0.95);
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .top-left {
+            top: 15px;
+            left: 15px;
+            width: 320px;
+        }
+
+        .top-right {
+            top: 15px;
+            right: 15px;
+            width: 300px;
+        }
+
+        .bottom-left {
+            bottom: 15px;
+            left: 15px;
+            width: 280px;
+        }
+
+        .bottom-right {
+            bottom: 15px;
+            right: 15px;
+            width: 300px;
+        }
+
+        .panel-title {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #667eea;
+            padding-bottom: 5px;
+        }
+
+        .panel-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            color: #a8aecf;
+        }
+
+        .panel-label {
+            color: #667eea;
+            flex: 0 0 auto;
+        }
+
+        .panel-value {
+            color: #00ff88;
+            text-align: right;
+            flex: 1;
+        }
+
+        .robot-status {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 2px solid #667eea;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .robot-name {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .robot-info {
+            color: #a8aecf;
+            margin-top: 2px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        button {
+            flex: 1;
+            padding: 8px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #7b8eea;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+
+        .help-text {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(10, 14, 39, 0.9);
+            border: 1px solid #667eea;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.5;
+            z-index: 50;
+        }
+
+        .fps-counter {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 14, 39, 0.9);
+            border: 1px solid #667eea;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 50;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-ok {
+            background: #00ff88;
+        }
+
+        .status-error {
+            background: #ff6b6b;
+        }
+
+        .debug-panel {
+            position: fixed;
+            top: 100px;
+            right: 15px;
+            background: rgba(10, 14, 39, 0.95);
+            border: 2px solid #ff6b6b;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            width: 250px;
+            z-index: 150;
+            display: none;
+        }
+
+        .debug-panel.show {
+            display: block;
+        }
+
+        .debug-item {
+            margin: 3px 0;
+            color: #ffd93d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Left Panel: 系统状态 -->
+    <div class="ui-panel top-left">
+        <div class="panel-title">
+            <span class="status-indicator status-ok" id="statusLight"></span>系统状态
+        </div>
+        <div class="panel-row">
+            <span class="panel-label">时间:</span>
+            <span class="panel-value" id="timeValue">0.0s</span>
+        </div>
+        <div class="panel-row">
+            <span class="panel-label">FPS:</span>
+            <span class="panel-value" id="fpsValue">60</span>
+        </div>
+        <div class="panel-row">
+            <span class="panel-label">订单总数:</span>
+            <span class="panel-value" id="ordersValue">0</span>
+        </div>
+        <div class="panel-row">
+            <span class="panel-label">待分配:</span>
+            <span class="panel-value" id="pendingValue">0</span>
+        </div>
+        <div class="panel-row">
+            <span class="panel-label">已完成:</span>
+            <span class="panel-value" id="completedValue">0</span>
+        </div>
+        <div class="panel-row">
+            <span class="panel-label">逾期:</span>
+            <span class="panel-value" id="overdueValue">0</span>
+        </div>
+
+        <div class="btn-group">
+            <button onclick="startSimulation()">▶ 启动</button>
+            <button onclick="pauseSimulation()">⏸ 暂停</button>
+            <button onclick="resetSimulation()">🔄 重置</button>
+            <button onclick="stepForward()">⏭ 步进</button>
+        </div>
+    </div>
+
+    <!-- Top Right Panel: 机器人状态 -->
+    <div class="ui-panel top-right">
+        <div class="panel-title">🤖 机器人状态</div>
+        <div id="robotsList"></div>
+    </div>
+
+    <!-- Bottom Left Panel: 图例 -->
+    <div class="ui-panel bottom-left">
+        <div class="panel-title">📍 图例</div>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #0088ff;"></div>
+                <span>空闲机器人</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b6b;"></div>
+                <span>忙碌/移动中</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffd93d;"></div>
+                <span>充电中</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00ff88;"></div>
+                <span>货架</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff9500;"></div>
+                <span>充电站</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <div class="panel-title">🐛 调试信息 (F12显示)</div>
+        <div id="debugInfo"></div>
+    </div>
+
+    <!-- FPS Counter -->
+    <div class="fps-counter">
+        <span id="statsDisplay">三维场景加载中...</span>
+    </div>
+
+    <!-- Help Panel -->
+    <div class="help-text">
+        <div style="color: #667eea; font-weight: bold; margin-bottom: 5px;">🎮 操作说明</div>
+        <div>• 鼠标拖拽: 旋转</div>
+        <div>• 滚轮: 缩放</div>
+        <div>• 右键拖拽: 平移</div>
+        <div>• 空格: 重置视角</div>
+    </div>
+
+    <!-- Three.js Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@r128/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // ============ 配置与状态 ============
+        const API_URL = 'http://localhost:5001/api';
+        const WAREHOUSE_WIDTH = 50;
+        const WAREHOUSE_HEIGHT = 50;
+
+        // Three.js 对象
+        let scene = null;
+        let camera = null;
+        let renderer = null;
+        let controls = null;
+        let robots = {};
+        let gridObjects = [];
+        let isInitialized = false;
+
+        // 状态
+        let lastUpdateTime = 0;
+        let frameCount = 0;
+        let lastFpsTime = performance.now();
+
+        // ============ 调试函数 ============
+        function debug(message) {
+            const now = new Date().toLocaleTimeString();
+            console.log(`[${now}] ${message}`);
+            addDebugInfo(message);
+        }
+
+        function addDebugInfo(message) {
+            const panel = document.getElementById('debugInfo');
+            const lines = panel.innerHTML.split('<br>').slice(-9);
+            lines.push(message);
+            panel.innerHTML = lines.join('<br>');
+        }
+
+        function showDebugPanel() {
+            document.getElementById('debugPanel').classList.add('show');
+            setTimeout(() => {
+                document.getElementById('debugPanel').classList.remove('show');
+            }, 5000);
+        }
+
+        // ============ Three.js初始化 ============
+        function initThreeJS() {
+            try {
+                if (!scene) {
+                    debug('① 初始化Three.js场景...');
+
+                    // 场景
+                    scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0x1a1f3a);
+                    scene.fog = new THREE.Fog(0x1a1f3a, 100, 150);
+
+                    // 相机
+                    camera = new THREE.PerspectiveCamera(
+                        75,
+                        window.innerWidth / window.innerHeight,
+                        0.1,
+                        1000
+                    );
+                    camera.position.set(25, 40, 35);
+                    camera.lookAt(25, 0, 25);
+
+                    // 渲染器
+                    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.shadowMap.enabled = true;
+                    renderer.shadowMap.type = THREE.PCFShadowShadowMap;
+                    renderer.setPixelRatio(window.devicePixelRatio);
+                    document.body.appendChild(renderer.domElement);
+
+                    debug('② 初始化控制器...');
+                    controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = true;
+                    controls.dampingFactor = 0.05;
+                    controls.autoRotate = false;
+                    controls.target.set(25, 0, 25);
+
+                    debug('③ 添加灯光...');
+                    // 环境光
+                    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+                    scene.add(ambient);
+
+                    // 方向光
+                    const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+                    directional.position.set(30, 50, 30);
+                    directional.castShadow = true;
+                    directional.shadow.mapSize.width = 2048;
+                    directional.shadow.mapSize.height = 2048;
+                    directional.shadow.camera.left = -60;
+                    directional.shadow.camera.right = 60;
+                    directional.shadow.camera.top = 60;
+                    directional.shadow.camera.bottom = -60;
+                    scene.add(directional);
+
+                    debug('④ 创建仓库环境...');
+                    createWarehouse();
+
+                    debug('⑤ 设置事件监听器...');
+                    window.addEventListener('resize', onWindowResize);
+                    window.addEventListener('keydown', onKeyDown);
+
+                    isInitialized = true;
+                    debug('✅ Three.js初始化完成');
+                } else {
+                    debug('Three.js已初始化');
+                }
+            } catch (error) {
+                console.error('初始化错误:', error);
+                debug('❌ 初始化失败: ' + error.message);
+                showDebugPanel();
+            }
+        }
+
+        function createWarehouse() {
+            // 地板
+            const floorGeom = new THREE.PlaneGeometry(WAREHOUSE_WIDTH, WAREHOUSE_HEIGHT);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a3f5f, roughness: 0.8 });
+            const floor = new THREE.Mesh(floorGeom, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // 网格
+            const gridHelper = new THREE.GridHelper(WAREHOUSE_HEIGHT, 50, 0x444466, 0x222233);
+            gridHelper.position.y = 0.01;
+            scene.add(gridHelper);
+
+            // 墙壁
+            const wallHeight = 20;
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a2a4a, roughness: 0.9 });
+
+            // 北墙
+            const northWall = new THREE.Mesh(new THREE.BoxGeometry(WAREHOUSE_WIDTH, wallHeight, 1), wallMat);
+            northWall.position.set(25, wallHeight / 2, 0);
+            northWall.castShadow = true;
+            scene.add(northWall);
+
+            // 南墙
+            const southWall = new THREE.Mesh(new THREE.BoxGeometry(WAREHOUSE_WIDTH, wallHeight, 1), wallMat);
+            southWall.position.set(25, wallHeight / 2, WAREHOUSE_HEIGHT);
+            southWall.castShadow = true;
+            scene.add(southWall);
+
+            // 货架
+            createShelves();
+
+            // 充电站
+            createChargingStations();
+
+            debug('仓库环境创建完成');
+        }
+
+        function createShelves() {
+            const shelves = [
+                { region: '货架A', positions: [[5, 10], [15, 10], [25, 10], [35, 10]], color: 0x00ff88 },
+                { region: '货架B', positions: [[5, 25], [15, 25], [25, 25], [35, 25]], color: 0x00dd66 },
+                { region: '货架C', positions: [[5, 40], [15, 40], [25, 40], [35, 40]], color: 0x00bb44 }
+            ];
+
+            shelves.forEach(shelf => {
+                shelf.positions.forEach(pos => {
+                    const geom = new THREE.BoxGeometry(3, 8, 3);
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: shelf.color,
+                        emissive: shelf.color,
+                        emissiveIntensity: 0.2,
+                        roughness: 0.4
+                    });
+                    const mesh = new THREE.Mesh(geom, mat);
+                    mesh.position.set(pos[0], 4, pos[1]);
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    scene.add(mesh);
+                    gridObjects.push(mesh);
+                });
+            });
+        }
+
+        function createChargingStations() {
+            const stations = [
+                { name: '充电A', pos: [10, 5] },
+                { name: '充电B', pos: [30, 5] },
+                { name: '充电C', pos: [46, 25] }
+            ];
+
+            stations.forEach(station => {
+                // 平台
+                const platformGeom = new THREE.CylinderGeometry(2.5, 3, 0.5, 32);
+                const platformMat = new THREE.MeshStandardMaterial({ color: 0xff9500, roughness: 0.5 });
+                const platform = new THREE.Mesh(platformGeom, platformMat);
+                platform.position.set(station.pos[0], 0.25, station.pos[1]);
+                platform.castShadow = true;
+                scene.add(platform);
+
+                // 支柱
+                const postGeom = new THREE.CylinderGeometry(0.3, 0.3, 4, 16);
+                const postMat = new THREE.MeshStandardMaterial({ color: 0xccaa00, roughness: 0.6 });
+                const post = new THREE.Mesh(postGeom, postMat);
+                post.position.set(station.pos[0], 2, station.pos[1]);
+                post.castShadow = true;
+                scene.add(post);
+
+                gridObjects.push(platform, post);
+            });
+        }
+
+        function createRobot(robotData) {
+            const group = new THREE.Group();
+
+            // 主体
+            const bodyGeom = new THREE.BoxGeometry(2, 1.2, 2);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0088ff });
+            const body = new THREE.Mesh(bodyGeom, bodyMat);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+
+            // 顶盖
+            const coverGeom = new THREE.BoxGeometry(2.2, 0.3, 2.2);
+            const coverMat = new THREE.MeshStandardMaterial({ color: 0x004499 });
+            const cover = new THREE.Mesh(coverGeom, coverMat);
+            cover.position.y = 0.75;
+            cover.castShadow = true;
+            group.add(cover);
+
+            // 车轮
+            [-0.8, 0.8].forEach(x => {
+                [-0.8, 0.8].forEach(z => {
+                    const wheelGeom = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+                    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+                    const wheel = new THREE.Mesh(wheelGeom, wheelMat);
+                    wheel.rotation.z = Math.PI / 2;
+                    wheel.position.set(x, -0.6, z);
+                    wheel.castShadow = true;
+                    group.add(wheel);
+                });
+            });
+
+            // 电池指示器
+            const batteryGeom = new THREE.BoxGeometry(2, 0.1, 0.3);
+            const batteryMat = new THREE.MeshStandardMaterial({ color: 0x00ff88 });
+            const battery = new THREE.Mesh(batteryGeom, batteryMat);
+            battery.position.y = 1.1;
+            battery.position.z = 1.2;
+            group.add(battery);
+
+            group.position.set(robotData.x, 0.6, robotData.y);
+            group.castShadow = true;
+            scene.add(group);
+
+            return {
+                group: group,
+                body: body,
+                battery: battery,
+                bodyMat: bodyMat
+            };
+        }
+
+        function updateRobotVisuals(robotId, robotData) {
+            if (!robots[robotId]) {
+                robots[robotId] = createRobot(robotData);
+            }
+
+            const robot = robots[robotId];
+            robot.group.position.set(robotData.x, 0.6, robotData.y);
+
+            // 状态颜色
+            const state = (robotData.state || '').toLowerCase();
+            let color = 0x0088ff;
+            if (state === 'moving' || state === 'busy') {
+                color = 0xff6b6b;
+            } else if (state === 'charging') {
+                color = 0xffd93d;
+            }
+            robot.bodyMat.color.setHex(color);
+
+            // 电池
+            const batteryPercent = Math.max(0, Math.min(1, (robotData.battery || 100) / 100));
+            robot.battery.scale.x = batteryPercent;
+        }
+
+        // ============ 数据更新 ============
+        async function updateData() {
+            try {
+                const response = await fetch(`${API_URL}/status`, { timeout: 5000 });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                if (!data.success) throw new Error('API返回失败');
+
+                const state = data.data;
+
+                // 更新指标
+                document.getElementById('timeValue').textContent = state.current_time?.toFixed(1) + 's' || '0.0s';
+                document.getElementById('ordersValue').textContent = (state.all_orders || []).length;
+
+                const pending = (state.all_orders || []).filter(o => o.status === 'pending')?.length || 0;
+                const completed = (state.all_orders || []).filter(o => o.status === 'completed')?.length || 0;
+                const overdue = (state.all_orders || []).filter(o => o.status === 'overdue')?.length || 0;
+
+                document.getElementById('pendingValue').textContent = pending;
+                document.getElementById('completedValue').textContent = completed;
+                document.getElementById('overdueValue').textContent = overdue;
+
+                // 更新机器人
+                const robotsList = state.robots?.robots || [];
+                robotsList.forEach(robotData => {
+                    updateRobotVisuals(robotData.id, robotData);
+                });
+
+                updateRobotsList(robotsList);
+
+                // 状态灯
+                document.getElementById('statusLight').className = 'status-indicator status-ok';
+
+            } catch (error) {
+                console.error('数据更新失败:', error);
+                debug('❌ 数据更新失败: ' + error.message);
+                document.getElementById('statusLight').className = 'status-indicator status-error';
+            }
+        }
+
+        function updateRobotsList(robotsList) {
+            const container = document.getElementById('robotsList');
+            let html = '';
+
+            (robotsList || []).slice(0, 5).forEach(robot => {
+                const state = (robot.state || '').toLowerCase();
+                const stateColor = 
+                    state === 'idle' ? '#00ff88' :
+                    state === 'moving' || state === 'busy' ? '#ff6b6b' :
+                    state === 'charging' ? '#ffd93d' : '#a8aecf';
+
+                html += `
+                    <div class="robot-status">
+                        <div class="robot-name">机器人 #${robot.id}</div>
+                        <div class="robot-info">
+                            <div style="color: ${stateColor};">状态: ${robot.state}</div>
+                            <div>位置: (${robot.x?.toFixed(1) || 0}, ${robot.y?.toFixed(1) || 0})</div>
+                            <div>电量: ${robot.battery?.toFixed(0) || 100}% | 任务: ${robot.tasks_in_queue || 0}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html || '<div style="color: #a8aecf;">等待数据...</div>';
+        }
+
+        // ============ 控制函数 ============
+        function startSimulation() {
+            fetch(`${API_URL}/simulation/start`, { method: 'POST' }).catch(e => console.error('启动失败:', e));
+        }
+
+        function pauseSimulation() {
+            fetch(`${API_URL}/simulation/pause`, { method: 'POST' }).catch(e => console.error('暂停失败:', e));
+        }
+
+        function resetSimulation() {
+            fetch(`${API_URL}/simulation/reset`, { method: 'POST' }).catch(e => console.error('重置失败:', e));
+        }
+
+        function stepForward() {
+            fetch(`${API_URL}/simulation/step`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delta_time: 1.0 })
+            }).catch(e => console.error('步进失败:', e));
+        }
+
+        // ============ 事件处理 ============
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onKeyDown(event) {
+            if (event.code === 'Space' && camera && controls) {
+                event.preventDefault();
+                camera.position.set(25, 40, 35);
+                controls.target.set(25, 0, 25);
+                controls.update();
+            }
+        }
+
+        // ============ 渲染循环 ============
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!scene || !camera || !renderer) return;
+
+            if (controls) controls.update();
+            renderer.render(scene, camera);
+
+            // FPS计算
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime >= lastFpsTime + 1000) {
+                document.getElementById('fpsValue').textContent = frameCount;
+                document.getElementById('statsDisplay').textContent = `FPS: ${frameCount}`;
+                frameCount = 0;
+                lastFpsTime = currentTime;
+            }
+
+            // 数据更新 (每500ms)
+            if (currentTime - lastUpdateTime > 500) {
+                updateData();
+                lastUpdateTime = currentTime;
+            }
+        }
+
+        // ============ 初始化 ============
+        window.addEventListener('DOMContentLoaded', () => {
+            debug('页面已加载');
+            
+            // 检查Three.js库
+            if (typeof THREE === 'undefined') {
+                debug('❌ Three.js库未加载');
+                alert('Three.js库加载失败，请刷新页面');
+                return;
+            }
+            debug('✅ Three.js库已加载');
+
+            if (typeof OrbitControls === 'undefined') {
+                debug('❌ OrbitControls未加载');
+                alert('OrbitControls库加载失败，请刷新页面');
+                return;
+            }
+            debug('✅ OrbitControls库已加载');
+
+            // 初始化
+            initThreeJS();
+            
+            // 首次更新
+            setTimeout(() => updateData(), 500);
+            
+            // 启动动画循环
+            animate();
+
+            debug('应用启动完成');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多机器人仓储系统 - 企业级仪表板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header-info {
+            display: flex;
+            gap: 30px;
+            font-size: 13px;
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            gap: 15px;
+            padding: 20px;
+            margin-top: 70px;
+            height: calc(100vh - 90px);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .panel h2 {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        .metric-label {
+            color: #666;
+        }
+
+        .metric-value {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-assigned { background: #cce5ff; color: #004085; }
+        .status-in-progress { background: #d1ecf1; color: #0c5460; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-overdue { background: #f8d7da; color: #721c24; }
+
+        .priority-high { color: #dc3545; font-weight: 600; }
+        .priority-medium { color: #ffc107; font-weight: 600; }
+        .priority-low { color: #28a745; font-weight: 600; }
+
+        .order-card {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .order-id {
+            color: #667eea;
+        }
+
+        .order-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .order-label {
+            color: #999;
+        }
+
+        .order-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            font-size: 12px;
+        }
+
+        .filter-btn {
+            padding: 4px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .robot-card {
+            background: #f9f9f9;
+            border-left: 4px solid #28a745;
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .robot-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .robot-info {
+            font-size: 11px;
+            color: #666;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+        }
+
+        .battery-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-top: 3px;
+            overflow: hidden;
+        }
+
+        .battery-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcf7f);
+        }
+
+        @media (max-width: 1400px) {
+            .main {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+
+        .scrollable {
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 多机器人仓储系统 - 企业级仪表板</h1>
+        <div class="header-info">
+            <div>⏱ 时间: <span id="timeDisplay">0.0s</span></div>
+            <div>📦 待分配订单: <span id="pendingCount">0</span></div>
+            <div>✓ 已完成: <span id="completedCount">0</span></div>
+            <div>⚠ 逾期: <span id="overdueCount">0</span></div>
+            <div>📊 完成率: <span id="completionRate">0%</span></div>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- 左侧：系统指标 -->
+        <div class="panel">
+            <h2>📊 系统指标</h2>
+            <div class="controls">
+                <button class="btn-primary" onclick="startSimulation()">▶ 启动</button>
+                <button class="btn-secondary" onclick="pauseSimulation()">⏸ 暂停</button>
+                <button class="btn-secondary" onclick="resetSimulation()">🔄 重置</button>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <div class="metric">
+                    <span class="metric-label">总机器人数</span>
+                    <span class="metric-value" id="totalRobots">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">空闲机器人</span>
+                    <span class="metric-value" id="idleRobots">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">机器人利用率</span>
+                    <span class="metric-value" id="utilizationRate">0%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">总行驶距离</span>
+                    <span class="metric-value" id="totalDistance">0 m</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">平均等待时间</span>
+                    <span class="metric-value" id="avgWaitTime">0 s</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">准时完成率</span>
+                    <span class="metric-value" id="onTimeRate">0%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">平均电量</span>
+                    <span class="metric-value" id="avgBattery">100%</span>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 20px;">🤖 机器人状态</h2>
+            <div class="scrollable" id="robotList"></div>
+        </div>
+
+        <!-- 中间：订单列表 -->
+        <div class="panel">
+            <h2>📦 订单管理</h2>
+            
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterOrders('all')">全部</button>
+                <button class="filter-btn" onclick="filterOrders('pending')">待分配</button>
+                <button class="filter-btn" onclick="filterOrders('assigned')">已分配</button>
+                <button class="filter-btn" onclick="filterOrders('completed')">已完成</button>
+                <button class="filter-btn" onclick="filterOrders('overdue')">逾期</button>
+            </div>
+
+            <div style="font-size: 12px; margin-bottom: 10px; color: #666;">
+                显示 <span id="orderCount">0</span> 个订单
+            </div>
+
+            <div class="scrollable" id="orderList"></div>
+        </div>
+
+        <!-- 右侧：监控信息 -->
+        <div class="panel">
+            <h2>📈 性能监控</h2>
+            
+            <div style="margin-bottom: 15px; font-size: 12px;">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 13px; margin-bottom: 5px;">订单优先级分布</h3>
+                    <div id="priorityDistribution"></div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 13px; margin-bottom: 5px;">订单类型分布</h3>
+                    <div id="typeDistribution"></div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 13px; margin-bottom: 5px;">客户等级分布</h3>
+                    <div id="customerDistribution"></div>
+                </div>
+            </div>
+
+            <h2>📋 最近事件</h2>
+            <div class="scrollable" id="eventsList" style="font-size: 11px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5001/api';
+        let currentFilter = 'all';
+        let allOrders = [];
+        let isRunning = false;
+
+        async function getStatus() {
+            try {
+                const response = await fetch(`${API_URL}/status`);
+                const data = await response.json();
+                if (data.success) {
+                    updateDashboard(data.data);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function updateDashboard(state) {
+            // 更新时间
+            document.getElementById('timeDisplay').textContent = state.current_time.toFixed(1) + 's';
+
+            // 更新指标
+            const robotsData = state.robots;
+            document.getElementById('totalRobots').textContent = robotsData.total_robots;
+            document.getElementById('idleRobots').textContent = robotsData.idle_robots;
+            
+            const utilization = ((robotsData.total_robots - robotsData.idle_robots) / robotsData.total_robots * 100).toFixed(1);
+            document.getElementById('utilizationRate').textContent = utilization + '%';
+
+            const metrics = state.metrics;
+            document.getElementById('totalDistance').textContent = metrics.total_distance.toFixed(1) + ' m';
+            document.getElementById('avgBattery').textContent = Math.floor(metrics.average_battery) + '%';
+
+            // 更新订单统计
+            allOrders = state.all_orders;
+            updateOrderStats(allOrders);
+            updateOrderList(allOrders);
+            updateRobotList(robotsData.robots);
+            updateMonitoring(state);
+        }
+
+        function updateOrderStats(orders) {
+            const pending = orders.filter(o => o.status === 'pending').length;
+            const completed = orders.filter(o => o.status === 'completed').length;
+            const overdue = orders.filter(o => o.status === 'overdue').length;
+            const total = orders.length;
+
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('completedCount').textContent = completed;
+            document.getElementById('overdueCount').textContent = overdue;
+            
+            const rate = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
+            document.getElementById('completionRate').textContent = rate + '%';
+        }
+
+        function filterOrders(status) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            updateOrderList(allOrders);
+        }
+
+        function updateOrderList(orders) {
+            let filtered = orders;
+            if (currentFilter !== 'all') {
+                filtered = orders.filter(o => o.status === currentFilter);
+            }
+
+            // 按紧迫度排序
+            filtered.sort((a, b) => (b.urgency_score || 0) - (a.urgency_score || 0));
+
+            const orderList = document.getElementById('orderList');
+            document.getElementById('orderCount').textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                orderList.innerHTML = '<div class="empty-state">暂无订单</div>';
+                return;
+            }
+
+            orderList.innerHTML = filtered.map(order => `
+                <div class="order-card">
+                    <div class="order-header">
+                        <span class="order-id">订单 #${order.id}</span>
+                        <span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>
+                    </div>
+                    <div class="order-body">
+                        <div class="order-row">
+                            <span class="order-label">订单类型:</span>
+                            <span class="order-value">${getOrderType(order.order_type)}</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">优先级:</span>
+                            <span class="order-value priority-${order.priority.toLowerCase()}">${order.priority}</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">客户:</span>
+                            <span class="order-value">${order.customer_id} (${order.customer_type})</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">重量/体积:</span>
+                            <span class="order-value">${order.weight_kg.toFixed(1)}kg / ${order.volume_m3.toFixed(3)}m³</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">取货点:</span>
+                            <span class="order-value">${order.pickup_region}</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">送货站:</span>
+                            <span class="order-value">${order.delivery_station}</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">截止时间:</span>
+                            <span class="order-value">${order.time_to_deadline.toFixed(0)}s</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">机器人:</span>
+                            <span class="order-value">${order.assigned_robot_id ? 'Robot #' + order.assigned_robot_id : '待分配'}</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">紧迫度:</span>
+                            <span class="order-value">${(order.urgency_score || 0).toFixed(1)}</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">数量:</span>
+                            <span class="order-value">${order.quantity}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'pending': '待分配',
+                'assigned': '已分配',
+                'in_progress': '进行中',
+                'completed': '已完成',
+                'overdue': '逾期',
+                'cancelled': '已取消'
+            };
+            return map[status] || status;
+        }
+
+        function getOrderType(type) {
+            const map = {
+                'sku_picking': 'SKU拣选',
+                'case_shipment': '整箱出库',
+                'return_intake': '退货入库',
+                'urgent_replenish': '紧急补货'
+            };
+            return map[type] || type;
+        }
+
+        function updateRobotList(robots) {
+            const robotList = document.getElementById('robotList');
+            robotList.innerHTML = robots.map(robot => `
+                <div class="robot-card">
+                    <div class="robot-name">机器人 #${robot.id}</div>
+                    <div class="robot-info">
+                        <div><strong>位置:</strong> (${robot.x}, ${robot.y})</div>
+                        <div><strong>状态:</strong> ${robot.state}</div>
+                        <div><strong>任务:</strong> ${robot.tasks_in_queue}</div>
+                        <div><strong>已完成:</strong> ${robot.tasks_completed}</div>
+                    </div>
+                    <div style="margin-top: 3px;">
+                        <strong>电量:</strong> ${robot.battery.toFixed(1)}%
+                        <div class="battery-bar">
+                            <div class="battery-fill" style="width: ${robot.battery}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateMonitoring(state) {
+            // 监控面板数据...
+            const eventsList = document.getElementById('eventsList');
+            const events = state.events_log.slice(-10).reverse();
+            eventsList.innerHTML = events.map(event => `
+                <div style="padding: 5px; border-bottom: 1px solid #f0f0f0;">
+                    [${event.time.toFixed(1)}s] ${getEventText(event)}
+                </div>
+            `).join('');
+            
+            // 显示算法性能信息
+            updateAlgorithmInfo(state.metrics);
+        }
+
+        function getEventText(event) {
+            if (event.type === 'order_created') {
+                return `✏️ 订单 #${event.order_id} 已创建 (优先级: ${event.priority})`;
+            } else if (event.type === 'order_assigned') {
+                return `📦 订单 #${event.order_id} 分配给机器人 #${event.robot_id}`;
+            } else if (event.type === 'task_completed') {
+                return `✓ 机器人 #${event.robot_id} 完成任务`;
+            }
+            return event.type;
+        }
+
+        function startSimulation() {
+            fetch(`${API_URL}/simulation/start`, { method: 'POST' });
+            isRunning = true;
+            animationLoop();
+        }
+
+        function pauseSimulation() {
+            fetch(`${API_URL}/simulation/pause`, { method: 'POST' });
+            isRunning = false;
+        }
+
+        function resetSimulation() {
+            fetch(`${API_URL}/simulation/reset`, { method: 'POST' });
+            currentFilter = 'all';
+            getStatus();
+        }
+
+        function animationLoop() {
+            getStatus();
+            if (isRunning) {
+                setTimeout(animationLoop, 1000);
+            }
+        }
+
+        // ============ 算法信息展示 ============
+        function updateAlgorithmInfo(metrics) {
+            // 如果信息面板中有算法使用统计，显示它
+            if (metrics.algorithm_usage) {
+                const usage = metrics.algorithm_usage;
+                const hungarian = usage.Hungarian || 0;
+                const genetic = usage.Genetic || 0;
+                const total = hungarian + genetic;
+                
+                if (total > 0) {
+                    const hungarianPct = ((hungarian / total) * 100).toFixed(1);
+                    const geneticPct = ((genetic / total) * 100).toFixed(1);
+                    
+                    console.log(`🤖 算法使用统计 (Phase 3):`);
+                    console.log(`   Hungarian: ${hungarian} (${hungarianPct}%)`);
+                    console.log(`   Genetic: ${genetic} (${geneticPct}%)`);
+                }
+            }
+            
+            // 显示负载均衡分数
+            if (metrics.load_balance_score !== undefined) {
+                const score = (metrics.load_balance_score * 100).toFixed(1);
+                console.log(`📊 负载均衡分数: ${score}%`);
+            }
+        }
+
+        // 初始化
+        getStatus();
+    </script>
+</body>
+</html>

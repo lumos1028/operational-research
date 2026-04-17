@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多机器人仓储系统 - 选择视图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 900px;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 40px;
+            font-size: 42px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        .dashboard-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .dashboard-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .dashboard-features {
+            text-align: left;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .dashboard-features li {
+            margin: 5px 0;
+            list-style-position: inside;
+        }
+
+        .dashboard-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: auto;
+        }
+
+        .dashboard-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .status {
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .status h3 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .status-item {
+            display: inline-block;
+            margin: 5px 15px;
+            font-size: 12px;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 多机器人仓储系统</h1>
+
+        <div class="status" id="statusPanel">
+            <h3>📊 实时系统状态</h3>
+            <div id="statusContent">加载中...</div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- 2D Dashboard -->
+            <a href="dashboard.html" class="dashboard-card">
+                <div class="dashboard-icon">📊</div>
+                <div class="dashboard-title">2D 数据看板</div>
+                <div class="dashboard-desc">实时订单监控和机器人管理</div>
+                <ul class="dashboard-features">
+                    <li>✓ 完整订单信息展示</li>
+                    <li>✓ 机器人实时追踪</li>
+                    <li>✓ 性能指标分析</li>
+                    <li>✓ 事件日志查看</li>
+                </ul>
+                <button class="dashboard-btn">打开看板 →</button>
+            </a>
+
+            <!-- 3D Dashboard -->
+            <a href="3d-dashboard.html" class="dashboard-card">
+                <div class="dashboard-icon">🎮</div>
+                <div class="dashboard-title">3D 可视化</div>
+                <div class="dashboard-desc">沉浸式仓库环境展示</div>
+                <ul class="dashboard-features">
+                    <li>✓ 3D仓库环境</li>
+                    <li>✓ 机器人实时位置</li>
+                    <li>✓ 货架和充电站</li>
+                    <li>✓ 自由视角控制</li>
+                </ul>
+                <button class="dashboard-btn">打开3D →</button>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        async function updateStatus() {
+            try {
+                const response = await fetch('http://localhost:5001/api/status');
+                const data = await response.json();
+
+                if (data.success) {
+                    const state = data.data;
+                    const all_orders = state.all_orders || [];
+                    const robots = state.robots?.robots || [];
+                    
+                    const pending = all_orders.filter(o => o.status === 'pending').length;
+                    const completed = all_orders.filter(o => o.status === 'completed').length;
+                    const idle = robots.filter(r => r.state === 'IDLE').length;
+
+                    const content = `
+                        <div class="status-item">
+                            ⏱ 时间: <span class="status-value">${state.current_time.toFixed(1)}s</span>
+                        </div>
+                        <div class="status-item">
+                            📦 订单: <span class="status-value">${all_orders.length}</span>
+                        </div>
+                        <div class="status-item">
+                            ⏳ 待分配: <span class="status-value">${pending}</span>
+                        </div>
+                        <div class="status-item">
+                            ✓ 完成: <span class="status-value">${completed}</span>
+                        </div>
+                        <div class="status-item">
+                            🤖 空闲机器人: <span class="status-value">${idle}/${robots.length}</span>
+                        </div>
+                    `;
+
+                    document.getElementById('statusContent').innerHTML = content;
+                }
+            } catch (error) {
+                document.getElementById('statusContent').innerHTML = `
+                    <span style="color: #ff6b6b;">✗ 无法连接API (${error.message})</span>
+                `;
+            }
+        }
+
+        // Initial update
+        updateStatus();
+
+        // Auto-refresh every 2 seconds
+        setInterval(updateStatus, 2000);
+    </script>
+</body>
+</html>

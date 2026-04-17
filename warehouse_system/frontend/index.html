@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多机器人仓储系统可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            height: 700px;
+        }
+
+        .canvas-section {
+            flex: 1;
+            padding: 20px;
+            border-right: 1px solid #eee;
+            background: #f9f9f9;
+        }
+
+        .canvas-section h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        /* 网格画布 */
+        #warehouseCanvas {
+            border: 2px solid #667eea;
+            background: white;
+            cursor: crosshair;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            height: calc(100% - 40px);
+        }
+
+        .sidebar {
+            width: 380px;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f5f5f5;
+        }
+
+        .sidebar h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .control-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #efefef;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff5252;
+        }
+
+        .stats-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .robot-list {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .robot-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .robot-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .robot-id {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .robot-state {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .state-idle {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .state-busy {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .state-charging {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .state-moving {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .robot-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+
+        .info-row {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .info-label {
+            color: #999;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* 图例 */
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+        }
+
+        .scrollable {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .main-content {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .canvas-section {
+                border-right: none;
+                border-bottom: 1px solid #eee;
+                height: 400px;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+        }
+
+        .time-display {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .battery-bar {
+            width: 100%;
+            height: 4px;
+            background: #f0f0f0;
+            border-radius: 2px;
+            margin-top: 3px;
+            overflow: hidden;
+        }
+
+        .battery-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcf7f);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 多机器人仓储系统</h1>
+            <p>实时任务分配、路径规划与可视化管理</p>
+        </div>
+
+        <div class="main-content">
+            <div class="canvas-section">
+                <h2>🏭 仓库地图</h2>
+                <canvas id="warehouseCanvas"></canvas>
+            </div>
+
+            <div class="sidebar">
+                <!-- 时间显示 -->
+                <div class="time-display">
+                    ⏱ 时间: <span id="timeDisplay">0.0s</span>
+                </div>
+
+                <!-- 控制面板 -->
+                <div class="control-panel">
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="startSimulation()">▶ 启动</button>
+                        <button class="btn-secondary" onclick="pauseSimulation()">⏸ 暂停</button>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="stepSimulation()">⏭ 单步</button>
+                        <button class="btn-danger" onclick="resetSimulation()">🔄 重置</button>
+                    </div>
+                </div>
+
+                <!-- 系统指标 -->
+                <div class="stats-panel">
+                    <h2>📊 系统指标</h2>
+                    <div class="stat-item">
+                        <span class="stat-label">总机器人数:</span>
+                        <span class="stat-value" id="totalRobots">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">空闲机器人:</span>
+                        <span class="stat-value" id="idleRobots">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">待分配订单:</span>
+                        <span class="stat-value" id="pendingOrders">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">总行驶距离:</span>
+                        <span class="stat-value" id="totalDistance">0 m</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">已完成任务:</span>
+                        <span class="stat-value" id="completedTasks">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">平均电量:</span>
+                        <span class="stat-value" id="avgBattery">100%</span>
+                    </div>
+                </div>
+
+                <!-- 机器人列表 -->
+                <div class="robot-list">
+                    <h2>🤖 机器人状态</h2>
+                    <div class="scrollable" id="robotList"></div>
+                </div>
+
+                <!-- 图例 -->
+                <div class="legend">
+                    <h2>🎨 图例</h2>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #fff9e6;"></div>
+                        <span>通道</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #333;"></div>
+                        <span>货架/障碍物</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #90EE90;"></div>
+                        <span>充电区</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FFB6C1;"></div>
+                        <span>目标点</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4169E1; border-radius: 50%;"></div>
+                        <span>机器人</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5001/api';
+        const canvas = document.getElementById('warehouseCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let currentState = null;
+        let animationId = null;
+        let isRunning = false;
+
+        // 设置canvas大小
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width - 10;
+            canvas.height = rect.height - 40;
+        }
+
+        // 获取系统状态
+        async function getStatus() {
+            try {
+                const response = await fetch(`${API_URL}/status`);
+                const data = await response.json();
+                if (data.success) {
+                    currentState = data.data;
+                    updateUI();
+                    drawWarehouse();
+                }
+            } catch (error) {
+                console.error('Error fetching status:', error);
+            }
+        }
+
+        // 更新UI
+        function updateUI() {
+            if (!currentState) return;
+
+            // 更新时间
+            document.getElementById('timeDisplay').textContent = 
+                currentState.current_time.toFixed(1) + 's';
+
+            // 更新指标
+            const robotsData = currentState.robots;
+            document.getElementById('totalRobots').textContent = robotsData.total_robots;
+            document.getElementById('idleRobots').textContent = robotsData.idle_robots;
+            document.getElementById('pendingOrders').textContent = currentState.pending_orders;
+            
+            const metrics = currentState.metrics;
+            document.getElementById('totalDistance').textContent = 
+                metrics.total_distance.toFixed(1) + ' m';
+            document.getElementById('completedTasks').textContent = 
+                metrics.total_tasks_completed;
+            document.getElementById('avgBattery').textContent = 
+                Math.floor(metrics.average_battery) + '%';
+
+            // 更新机器人列表
+            updateRobotList(robotsData.robots);
+        }
+
+        // 更新机器人列表
+        function updateRobotList(robots) {
+            const robotList = document.getElementById('robotList');
+            robotList.innerHTML = robots.map(robot => `
+                <div class="robot-item">
+                    <div class="robot-item-header">
+                        <span class="robot-id">机器人 #${robot.id}</span>
+                        <span class="robot-state state-${robot.state}">
+                            ${translateState(robot.state)}
+                        </span>
+                    </div>
+                    <div class="robot-info">
+                        <div class="info-row">
+                            <span class="info-label">位置:</span>
+                            <span class="info-value">(${robot.x}, ${robot.y})</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">负载:</span>
+                            <span class="info-value">${robot.load}/${robot.max_capacity || 100}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">任务队列:</span>
+                            <span class="info-value">${robot.tasks_in_queue}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">已完成:</span>
+                            <span class="info-value">${robot.tasks_completed}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <div style="font-size: 11px; color: #999; margin-bottom: 3px;">
+                            电量: ${robot.battery.toFixed(1)}%
+                        </div>
+                        <div class="battery-bar">
+                            <div class="battery-fill" style="width: ${robot.battery}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 翻译状态
+        function translateState(state) {
+            const stateMap = {
+                'idle': '空闲',
+                'busy': '忙碌',
+                'charging': '充电',
+                'moving': '移动'
+            };
+            return stateMap[state] || state;
+        }
+
+        // 绘制仓库
+        function drawWarehouse() {
+            if (!currentState) return;
+
+            const grid = currentState.grid;
+            const robots = currentState.robots.robots;
+            const width = currentState.robots.total_robots ? 50 : 50;
+            const height = 50;
+
+            const cellWidth = canvas.width / width;
+            const cellHeight = canvas.height / height;
+
+            // 绘制网格
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cell = grid[y][x];
+                    let color;
+
+                    switch (cell) {
+                        case 0: color = '#fff9e6'; break; // 通道
+                        case 1: color = '#333'; break; // 障碍物
+                        case 2: color = '#90EE90'; break; // 充电区
+                        case 3: color = '#FFB6C1'; break; // 目标点
+                        default: color = '#fff9e6';
+                    }
+
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+
+                    // 绘制网格线
+                    ctx.strokeStyle = '#e0e0e0';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                }
+            }
+
+            // 绘制机器人
+            robots.forEach(robot => {
+                const x = robot.x * cellWidth + cellWidth / 2;
+                const y = robot.y * cellHeight + cellHeight / 2;
+                const radius = Math.min(cellWidth, cellHeight) / 2.5;
+
+                // 绘制机器人圆形
+                ctx.fillStyle = '#4169E1';
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 绘制状态指示
+                let statusColor;
+                switch (robot.state) {
+                    case 'idle': statusColor = '#90EE90'; break;
+                    case 'busy': statusColor = '#FFD700'; break;
+                    case 'charging': statusColor = '#FF6347'; break;
+                    case 'moving': statusColor = '#87CEEB'; break;
+                    default: statusColor = '#4169E1';
+                }
+                ctx.strokeStyle = statusColor;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // 绘制机器人编号
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(robot.id, x, y);
+
+                // 绘制电量条
+                const batteryWidth = cellWidth * 0.8;
+                const batteryHeight = 3;
+                const batteryX = x - batteryWidth / 2;
+                const batteryY = y + radius + 5;
+
+                ctx.fillStyle = '#e0e0e0';
+                ctx.fillRect(batteryX, batteryY, batteryWidth, batteryHeight);
+
+                const batteryPercent = robot.battery / 100;
+                ctx.fillStyle = batteryPercent > 0.3 ? '#90EE90' : '#FF6347';
+                ctx.fillRect(batteryX, batteryY, batteryWidth * batteryPercent, batteryHeight);
+            });
+        }
+
+        // 控制函数
+        async function startSimulation() {
+            try {
+                await fetch(`${API_URL}/simulation/start`, { method: 'POST' });
+                isRunning = true;
+                animationLoop();
+            } catch (error) {
+                console.error('Error starting simulation:', error);
+            }
+        }
+
+        async function pauseSimulation() {
+            try {
+                await fetch(`${API_URL}/simulation/pause`, { method: 'POST' });
+                isRunning = false;
+                if (animationId) cancelAnimationFrame(animationId);
+            } catch (error) {
+                console.error('Error pausing simulation:', error);
+            }
+        }
+
+        async function stepSimulation() {
+            try {
+                const response = await fetch(`${API_URL}/simulation/step`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ delta_time: 1.0 })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    currentState = data.data;
+                    updateUI();
+                    drawWarehouse();
+                }
+            } catch (error) {
+                console.error('Error stepping simulation:', error);
+            }
+        }
+
+        async function resetSimulation() {
+            try {
+                await fetch(`${API_URL}/simulation/reset`, { method: 'POST' });
+                isRunning = false;
+                if (animationId) cancelAnimationFrame(animationId);
+                await getStatus();
+            } catch (error) {
+                console.error('Error resetting simulation:', error);
+            }
+        }
+
+        function animationLoop() {
+            getStatus();
+            if (isRunning) {
+                animationId = requestAnimationFrame(animationLoop);
+            }
+        }
+
+        // 初始化
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        getStatus();
+    </script>
+</body>
+</html>
